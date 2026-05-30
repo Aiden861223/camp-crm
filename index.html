@@ -1259,11 +1259,11 @@ function updateTabBadge(){
 }
 
 // close sidebar when switching schools on mobile
-const _origSwitchSchool = switchSchool;
-function switchSchool(s){
-  _origSwitchSchool(s);
+const _baseSwitchSchool = switchSchool;
+window.switchSchool = function(s){
+  _baseSwitchSchool(s);
   if(window.innerWidth < 768) closeSidebar();
-}
+};
 
 init();
 </script>
