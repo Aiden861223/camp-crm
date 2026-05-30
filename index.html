@@ -1293,5 +1293,97 @@ init();
   </button>
 </div>
 
+
+<!-- Enhanced Mobile CRM Features -->
+<style>
+.fab-add{
+ position:fixed;right:18px;bottom:78px;width:56px;height:56px;
+ border-radius:50%;border:none;background:#2563EB;color:#fff;
+ font-size:28px;cursor:pointer;z-index:70;
+ box-shadow:0 6px 20px rgba(37,99,235,.35);
+}
+.search-highlight{outline:3px solid #93C5FD!important;}
+</style>
+
+<button class="fab-add" onclick="openAddMember()" title="新增成員">+</button>
+
+<div class="tab-bar" id="mobile-tabbar">
+  <button class="tab-btn active" onclick="mobileTabAction('list',event)"><span class="tab-icon">📋</span><span>名單</span></button>
+  <button class="tab-btn" onclick="mobileTabAction('search',event)"><span class="tab-icon">🔍</span><span>搜尋</span></button>
+  <button class="tab-btn" onclick="mobileTabAction('reminder',event)"><span class="tab-icon">🔔</span><span>提醒</span><span class="tab-badge" id="mobileReminderBadge">0</span></button>
+  <button class="tab-btn" onclick="mobileTabAction('add',event)"><span class="tab-icon">➕</span><span>新增</span></button>
+  <button class="tab-btn" onclick="mobileTabAction('menu',event)"><span class="tab-icon">☰</span><span>選單</span></button>
+</div>
+
+<script>
+function mobileTabAction(type,e){
+ document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+ if(e?.currentTarget)e.currentTarget.classList.add('active');
+
+ switch(type){
+  case 'list':
+   document.querySelector('.content')?.scrollTo({top:0,behavior:'smooth'});
+   break;
+  case 'search':
+   const s=document.getElementById('search-input');
+   if(s){
+    s.focus();
+    s.classList.add('search-highlight');
+    setTimeout(()=>s.classList.remove('search-highlight'),1500);
+   }
+   break;
+  case 'reminder':
+   if(typeof openReminders==='function') openReminders();
+   break;
+  case 'add':
+   if(typeof openAddMember==='function') openAddMember();
+   break;
+  case 'menu':
+   toggleSidebar();
+   break;
+ }
+}
+
+function toggleSidebar(){
+ let sb=document.getElementById('sidebar');
+ if(!sb) return;
+
+ let ov=document.getElementById('sidebar-overlay');
+ if(!ov){
+   ov=document.createElement('div');
+   ov.id='sidebar-overlay';
+   ov.className='sidebar-overlay';
+   ov.onclick=function(){
+      sb.classList.remove('open');
+      ov.classList.remove('show');
+   };
+   document.body.appendChild(ov);
+ }
+
+ sb.classList.toggle('open');
+ ov.classList.toggle('show');
+}
+
+function updateReminderBadge(){
+ const source=document.getElementById('reminder-total-cnt');
+ const target=document.getElementById('mobileReminderBadge');
+ if(!source || !target) return;
+
+ const n=parseInt(source.textContent||'0');
+ target.textContent=n;
+ if(n>0) target.classList.add('show');
+}
+
+setTimeout(updateReminderBadge,1500);
+
+// Ctrl+K 快速搜尋
+document.addEventListener('keydown',function(e){
+ if((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='k'){
+   e.preventDefault();
+   document.getElementById('search-input')?.focus();
+ }
+});
+</script>
+
 </body>
 </html>
