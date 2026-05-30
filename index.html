@@ -1385,5 +1385,322 @@ document.addEventListener('keydown',function(e){
 });
 </script>
 
+
+<script>
+window.SCHOOL_DISPLAY_NAMES = {
+ '文化極光校':'極光校',
+ '內壢森耀校':'森耀校',
+ '快樂騰雲校':'騰雲校',
+ '大園晨光校':'晨光校',
+ '青埔翱翔校':'翱翔校',
+ '竹北知行校':'知行校',
+ '中壢心夢想校':'心夢想校',
+ '園中方舟校':'方舟校',
+ '大園參天校':'參天校',
+ '青埔旭日校':'旭日校',
+ '青埔升大校':'升大校'
+};
+
+window.SCHOOL_GROUPS = {
+ elementary:[
+  '文化極光校','內壢森耀校','快樂騰雲校',
+  '大園晨光校','青埔翱翔校','竹北知行校'
+ ],
+ junior:[
+  '中壢心夢想校','園中方舟校',
+  '大園參天校','青埔旭日校'
+ ],
+ senior:[
+  '青埔升大校'
+ ]
+};
+</script>
+
+
+<style>
+.group-header{display:flex;align-items:center;padding:8px 12px;margin:2px 6px;border-radius:7px;cursor:pointer;color:rgba(255,255,255,.85);font-size:12px;font-weight:700;background:rgba(255,255,255,.05)}
+.group-content.collapsed{display:none}
+.group-arrow{margin-right:6px;width:12px;display:inline-block}
+</style>
+<script>
+window.addEventListener('load',()=>{
+ setTimeout(()=>{
+   const nav=document.getElementById('nav-items');
+   if(!nav) return;
+
+   const items=[...nav.querySelectorAll('.nav-item')];
+   if(!items.length) return;
+
+   const groups={
+     '🎒 國小':['文化極光校','內壢森耀校','快樂騰雲校','大園晨光校','青埔翱翔校','竹北知行校'],
+     '📚 國中':['中壢心夢想校','園中方舟校','大園參天校','青埔旭日校'],
+     '🎓 高中':['青埔升大校']
+   };
+
+   const map={};
+   items.forEach(el=>{
+      const txt=el.textContent.trim();
+      Object.values(groups).flat().forEach(name=>{
+         if(txt.includes(name)) map[name]=el;
+      });
+   });
+
+   nav.innerHTML='';
+
+   Object.entries(groups).forEach(([title,schools])=>{
+      const header=document.createElement('div');
+      header.className='group-header';
+      header.innerHTML='<span class="group-arrow">▼</span>'+title;
+
+      const content=document.createElement('div');
+      content.className='group-content';
+
+      schools.forEach(name=>{
+        if(map[name]) content.appendChild(map[name]);
+      });
+
+      header.onclick=()=>{
+        content.classList.toggle('collapsed');
+        header.querySelector('.group-arrow').textContent =
+          content.classList.contains('collapsed') ? '▶' : '▼';
+      };
+
+      nav.appendChild(header);
+      nav.appendChild(content);
+   });
+ },800);
+});
+</script>
+
+
+<style>
+.group-header{position:sticky;top:0;z-index:3}
+.sidebar{padding-bottom:90px}
+@media(max-width:767px){
+  .sidebar{width:260px}
+  .nav-item{padding:10px 12px;font-size:14px}
+  .group-header{padding:10px 12px}
+}
+</style>
+
+<script>
+// 校名簡寫
+const SCHOOL_SHORT_NAMES={
+'文化極光校':'極光校',
+'內壢森耀校':'森耀校',
+'快樂騰雲校':'騰雲校',
+'大園晨光校':'晨光校',
+'青埔翱翔校':'翱翔校',
+'竹北知行校':'知行校',
+'中壢心夢想校':'心夢想校',
+'園中方舟校':'方舟校',
+'大園參天校':'參天校',
+'青埔旭日校':'旭日校',
+'青埔升大校':'升大校'
+};
+
+window.addEventListener('load',()=>{
+ setTimeout(()=>{
+
+   // 校名簡寫
+   document.querySelectorAll('#nav-items .nav-item').forEach(el=>{
+      let txt=el.innerHTML;
+      Object.entries(SCHOOL_SHORT_NAMES).forEach(([full,short])=>{
+         txt=txt.replace(full,short);
+      });
+      el.innerHTML=txt;
+   });
+
+   // 收合狀態記憶
+   document.querySelectorAll('.group-header').forEach(header=>{
+      const key='group_'+header.textContent.trim();
+      const next=header.nextElementSibling;
+
+      const state=localStorage.getItem(key);
+      if(state==='closed'){
+         next?.classList.add('collapsed');
+         const arrow=header.querySelector('.group-arrow');
+         if(arrow) arrow.textContent='▶';
+      }
+
+      header.addEventListener('click',()=>{
+         const closed=next?.classList.contains('collapsed');
+         localStorage.setItem(key,closed?'closed':'open');
+      });
+   });
+
+   // 手機版目前校區自動捲到可視區
+   const active=document.querySelector('#nav-items .nav-item.active');
+   if(active){
+      active.scrollIntoView({block:'center'});
+   }
+
+ },1200);
+});
+</script>
+
+
+<!-- CRM Dashboard + Reminder Sort -->
+<script>
+// ===== 儀表板 =====
+function renderDashboard(){
+  if(document.getElementById('dashboard-nav')) return;
+
+  const navAll = document.getElementById('nav-all');
+  if(navAll){
+    const div=document.createElement('div');
+    div.id='dashboard-nav';
+    div.className='nav-item';
+    div.innerHTML='📊 儀表板';
+    div.onclick=showDashboard;
+    navAll.parentNode.insertBefore(div, navAll.nextSibling);
+  }
+}
+
+function showDashboard(){
+  document.getElementById('topbar-title').textContent='招生儀表板';
+
+  let total=0, contacted=0, trial=0, deal=0;
+
+  Object.values(RAW).forEach(arr=>{
+    arr.forEach(r=>{
+      total++;
+      if(['已回覆','已試聽','待追蹤'].includes(r['追蹤狀況'])) contacted++;
+      if(r['追蹤狀況']==='已試聽') trial++;
+      if(r['是否成交']==='X') deal++;
+    });
+  });
+
+  const stats=document.getElementById('stats-grid');
+  stats.innerHTML=`
+    <div class="stat-card blue"><div class="stat-label">總名單</div><div class="stat-val">${total}</div></div>
+    <div class="stat-card green"><div class="stat-label">聯絡率</div><div class="stat-val">${total?Math.round(contacted/total*100):0}%</div></div>
+    <div class="stat-card orange"><div class="stat-label">試聽率</div><div class="stat-val">${total?Math.round(trial/total*100):0}%</div></div>
+    <div class="stat-card purple"><div class="stat-label">成交率</div><div class="stat-val">${total?Math.round(deal/total*100):0}%</div></div>
+  `;
+
+  document.getElementById('table-title').textContent='招生儀表板';
+  document.getElementById('table-body').innerHTML='';
+}
+
+
+// ===== 追蹤提醒排序 =====
+function sortReminderRows(container){
+  const rows=[...container.querySelectorAll('tr')];
+
+  rows.sort((a,b)=>{
+    const ta=a.innerText||'';
+    const tb=b.innerText||'';
+
+    const getScore=(txt)=>{
+      if(txt.includes('逾期')) return 100;
+      if(txt.includes('今天')) return 80;
+      if(txt.includes('明天')) return 60;
+      return 10;
+    };
+    return getScore(tb)-getScore(ta);
+  });
+
+  rows.forEach(r=>container.appendChild(r));
+}
+
+window.addEventListener('load',()=>{
+  setTimeout(renderDashboard,1200);
+
+  const observer=new MutationObserver(()=>{
+    const tb=document.querySelector('#reminder-content tbody');
+    if(tb) sortReminderRows(tb);
+  });
+
+  const rc=document.getElementById('reminder-content');
+  if(rc) observer.observe(rc,{childList:true,subtree:true});
+});
+</script>
+
+
+<script>
+// 升級儀表板：學程漏斗 + 成交王
+const SCHOOL_LEVELS={
+ '文化極光校':'國小','內壢森耀校':'國小','快樂騰雲校':'國小',
+ '大園晨光校':'國小','青埔翱翔校':'國小','竹北知行校':'國小',
+ '中壢心夢想校':'國中','園中方舟校':'國中','大園參天校':'國中','青埔旭日校':'國中',
+ '青埔升大校':'高中'
+};
+
+function showDashboard(){
+  document.getElementById('topbar-title').textContent='招生儀表板';
+
+  const levelStats={
+    '國小':{total:0,contact:0,trial:0,deal:0},
+    '國中':{total:0,contact:0,trial:0,deal:0},
+    '高中':{total:0,contact:0,trial:0,deal:0}
+  };
+
+  let king={school:'-',rate:0};
+  let low={school:'-',rate:999};
+
+  Object.entries(RAW).forEach(([school,rows])=>{
+    const level=SCHOOL_LEVELS[school]||'國小';
+
+    let total=rows.length;
+    let deal=0;
+
+    rows.forEach(r=>{
+      levelStats[level].total++;
+
+      if(['已回覆','已試聽','待追蹤'].includes(r['追蹤狀況']))
+        levelStats[level].contact++;
+
+      if(r['追蹤狀況']==='已試聽')
+        levelStats[level].trial++;
+
+      if(r['是否成交']==='X'){
+        levelStats[level].deal++;
+        deal++;
+      }
+    });
+
+    const rate=total?deal/total*100:0;
+
+    if(total>=3){
+      if(rate>king.rate){king={school,rate};}
+      if(rate<low.rate){low={school,rate};}
+    }
+  });
+
+  const stats=document.getElementById('stats-grid');
+
+  const funnel=(name,s)=>`
+    <div class="stat-card">
+      <div class="stat-label">${name} 漏斗</div>
+      <div style="font-size:12px;line-height:1.8">
+        名單 ${s.total}<br>
+        已聯絡 ${s.contact}<br>
+        試聽 ${s.trial}<br>
+        成交 ${s.deal}
+      </div>
+    </div>`;
+
+  stats.innerHTML=`
+    ${funnel('國小',levelStats['國小'])}
+    ${funnel('國中',levelStats['國中'])}
+    ${funnel('高中',levelStats['高中'])}
+    <div class="stat-card green">
+      <div class="stat-label">🏆 成交王校區</div>
+      <div class="stat-val" style="font-size:18px">${king.school}</div>
+      <div class="stat-sub">${king.rate.toFixed(1)}%</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="stat-label">📉 最低成交率</div>
+      <div class="stat-val" style="font-size:18px">${low.school}</div>
+      <div class="stat-sub">${low.rate===999?0:low.rate.toFixed(1)}%</div>
+    </div>
+  `;
+
+  document.getElementById('table-title').textContent='國小／國中／高中招生漏斗';
+  document.getElementById('table-body').innerHTML='';
+}
+</script>
+
 </body>
 </html>
