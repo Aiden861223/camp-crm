@@ -151,6 +151,60 @@ body{font-family:'Noto Sans TC','Microsoft JhengHei',Arial,sans-serif;background
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#D1D5DB;border-radius:4px}
 
+/* ════ RWD ════ */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:49}
+.sidebar-overlay.show{display:block}
+.tab-bar{display:none;position:fixed;bottom:0;left:0;right:0;height:56px;background:#1e2235;border-top:1px solid rgba(255,255,255,0.08);z-index:60;flex-direction:row;align-items:stretch}
+.tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;color:rgba(255,255,255,0.45);font-size:10px;font-weight:600;border:none;background:transparent;transition:.15s;position:relative}
+.tab-btn.active{color:#60A5FA}
+.tab-btn .tab-icon{font-size:20px;line-height:1}
+.tab-badge{position:absolute;top:6px;right:calc(50% - 18px);background:#F59E0B;color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:none;align-items:center;justify-content:center;padding:0 3px}
+.tab-badge.show{display:flex}
+.hamburger{display:none;background:none;border:none;cursor:pointer;padding:6px;color:#374151;font-size:22px;flex-shrink:0}
+@media(max-width:767px){
+  :root{--sidebar-w:240px;--header-h:52px}
+  .app{flex-direction:column}
+  .sidebar{position:fixed;top:0;left:0;bottom:0;width:var(--sidebar-w);z-index:50;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1)}
+  .sidebar.open{transform:translateX(0)}
+  .main{flex:1;min-width:0;padding-bottom:60px}
+  .tab-bar{display:flex}
+  .hamburger{display:flex;align-items:center;justify-content:center}
+  .topbar{padding:0 12px;gap:8px;height:52px}
+  .topbar-title{font-size:13px}
+  .search-wrap{max-width:none;flex:1}
+  .filter-bar{padding:8px 10px;gap:5px}
+  .filter-select{font-size:11px;padding:4px 6px}
+  .btn{padding:6px 10px;font-size:12px}
+  .btn-text-hide{display:none}
+  .content{padding:10px}
+  .stats-grid{grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+  .stat-card{padding:10px 12px}
+  .stat-val{font-size:18px}
+  .table-header{padding:10px 12px}
+  .crm-table{font-size:12px}
+  .crm-table th,.crm-table td{padding:7px 8px}
+  .col-hide-mobile{display:none}
+  .modal{padding:16px;width:96vw;max-height:88vh;border-radius:12px}
+  .form-row{grid-template-columns:1fr}
+  .filter-divider{display:none}
+  .date-input{font-size:11px;padding:4px 6px}
+}
+@media(min-width:768px) and (max-width:1023px){
+  :root{--sidebar-w:190px}
+  .topbar{padding:0 14px}
+  .search-wrap{max-width:210px}
+  .content{padding:14px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .crm-table{font-size:12px}
+  .crm-table th,.crm-table td{padding:8px 10px}
+  .modal{width:88vw}
+}
+@media(min-width:1024px){
+  .hamburger{display:none!important}
+  .tab-bar{display:none!important}
+  .sidebar{transform:none!important;position:relative}
+}
+
 /* ── School groups ── */
 .sidebar-group-label{padding:6px 14px 2px;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.28);display:flex;align-items:center;gap:6px;margin-top:6px}
 .sidebar-group-label::after{content:"";flex:1;height:1px;background:rgba(255,255,255,0.08)}
@@ -535,11 +589,12 @@ function buildNav(){
       el.appendChild(div);
     });
   });
-  // update reminder badge
+  // update reminder badges (sidebar + tab bar)
   const reminderRows = getReminderRows();
   const cnt = reminderRows.length;
   const badge = document.getElementById("reminder-total-cnt");
   if(badge){ badge.textContent=cnt; badge.style.display=cnt>0?"inline":"none"; }
+  if(typeof updateTabBadge==="function") updateTabBadge();
 }
 
 function switchSchool(s){
@@ -691,12 +746,14 @@ function renderTable(){
     const sc = sortCol==="校區"?` th-sort ${sortDir}`:"th-sort";
     th += `<th class="${sc}" onclick="toggleSort('校區')">校區<span class="sort-icon"></span></th>`;
   }
+  const MOBILE_HIDE = ["孩子年級","備註"];
   allCols.forEach(c=>{
+    const hc = MOBILE_HIDE.includes(c)?' col-hide-mobile':'';
     if(SORTABLE_COLS.includes(c)){
       const sc2 = sortCol===c?` th-sort ${sortDir}`:"th-sort";
-      th+=`<th class="${sc2}" onclick="toggleSort('${c}')" title="點擊排序">${c}<span class="sort-icon"></span></th>`;
+      th+=`<th class="${sc2}${hc}" onclick="toggleSort('${c}')" title="點擊排序">${c}<span class="sort-icon"></span></th>`;
     } else {
-      th+=`<th>${c}</th>`;
+      th+=`<th class="${hc.trim()}">${c}</th>`;
     }
   });
   th += "<th>操作</th></tr>";
@@ -728,9 +785,10 @@ function renderTable(){
       } else if(col==="是否成交"){
         html += `<td><span class="badge ${isDeal(val)?"badge-deal":"badge-nodeal"}">${isDeal(val)?"✅ 成交":"—"}</span></td>`;
       } else if(col==="備註"){
-        html += `<td style="max-width:180px"><span style="font-size:12px;color:#6B7280;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical" title="${val}">${val||""}</span></td>`;
+        html += `<td class="col-hide-mobile" style="max-width:180px"><span style="font-size:12px;color:#6B7280;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical" title="${val}">${val||""}</span></td>`;
       } else {
-        html += `<td><span class="cell-text" title="${val}">${val||""}</span></td>`;
+        const hcg = MOBILE_HIDE.includes(col)?' col-hide-mobile':'';
+        html += `<td class="${hcg.trim()}"><span class="cell-text" title="${val}">${val||""}</span></td>`;
       }
     });
     html += `<td><div class="col-actions">
@@ -1153,7 +1211,87 @@ function exportCSV(){
   showToast("CSV 已匯出");
 }
 
+// ─── RWD / Mobile ─────────────────────────────────────────────────────────────
+function toggleSidebar(){
+  const s = document.getElementById("sidebar");
+  const o = document.getElementById("sidebar-overlay");
+  const isOpen = s.classList.contains("open");
+  s.classList.toggle("open", !isOpen);
+  o.classList.toggle("show", !isOpen);
+}
+function closeSidebar(){
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("sidebar-overlay").classList.remove("show");
+}
+
+function tabSwitch(tab){
+  // update active state
+  ['home','search','remind','add','menu'].forEach(t=>{
+    const btn = document.getElementById('tab-btn-'+t);
+    if(btn) btn.classList.toggle('active', t===tab);
+  });
+  if(tab==='home'){
+    closeSidebar();
+    // scroll table into view
+    document.getElementById('crm-table')?.closest('.table-wrap')?.scrollIntoView({behavior:'smooth',block:'start'});
+  } else if(tab==='search'){
+    closeSidebar();
+    const inp = document.getElementById('search-input');
+    inp.focus();
+    inp.scrollIntoView({behavior:'smooth',block:'center'});
+  } else if(tab==='remind'){
+    closeSidebar();
+    openReminders();
+  } else if(tab==='add'){
+    closeSidebar();
+    openAddMember();
+  } else if(tab==='menu'){
+    toggleSidebar();
+    // reset to home tab visually after sidebar opens
+    setTimeout(()=>{ document.getElementById('tab-btn-menu')?.classList.remove('active'); document.getElementById('tab-btn-home')?.classList.add('active'); }, 300);
+  }
+}
+
+function updateTabBadge(){
+  const cnt = getReminderRows().length;
+  const badge = document.getElementById('tab-remind-badge');
+  if(badge){ badge.textContent=cnt; badge.classList.toggle('show', cnt>0); }
+}
+
+// close sidebar when switching schools on mobile
+const _origSwitchSchool = switchSchool;
+function switchSchool(s){
+  _origSwitchSchool(s);
+  if(window.innerWidth < 768) closeSidebar();
+}
+
 init();
 </script>
+
+<!-- Bottom Tab Bar (mobile) -->
+<div class="tab-bar" id="tab-bar">
+  <button class="tab-btn active" id="tab-btn-home" onclick="tabSwitch('home')">
+    <span class="tab-icon">📋</span>
+    <span>名單</span>
+  </button>
+  <button class="tab-btn" id="tab-btn-search" onclick="tabSwitch('search')">
+    <span class="tab-icon">🔍</span>
+    <span>搜尋</span>
+  </button>
+  <button class="tab-btn" id="tab-btn-remind" onclick="tabSwitch('remind')">
+    <span class="tab-icon">🔔</span>
+    <span>提醒</span>
+    <span class="tab-badge" id="tab-remind-badge">0</span>
+  </button>
+  <button class="tab-btn" id="tab-btn-add" onclick="tabSwitch('add')">
+    <span class="tab-icon">➕</span>
+    <span>新增</span>
+  </button>
+  <button class="tab-btn" id="tab-btn-menu" onclick="tabSwitch('menu')">
+    <span class="tab-icon">☰</span>
+    <span>選單</span>
+  </button>
+</div>
+
 </body>
 </html>
